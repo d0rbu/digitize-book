@@ -24,9 +24,9 @@ const Upload = () => {
 
     return (
         <div>
-            {/* <button className="bg-purple-500 text-white">
-      Click me!
-    </button> */}
+            <button className="bg-purple-500 text-white">
+                Click me!
+            </button>
             <div>Upload a file:</div>
 
             <button onClick={handleUploadClick}>
