@@ -12,6 +12,6 @@ from typing import Sequence
 class Textbook:
     def __init__(self, textbook: Sequence[str]):
         self.raw_textbook: Sequence[str] = textbook
-
     
-    def __
+    def _extract_table_of_contents(self, textbook: Sequence[str]):
+        pass

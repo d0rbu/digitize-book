@@ -36,11 +36,13 @@ class NougatOCR:
         return self.process(images)
 
     
-    def process(self, image: ImageObject | Sequence[ImageObject]):
-        if isinstance(image, ImageObject):
-            image = [image]
+    def process(self, images: ImageObject | Sequence[ImageObject]):
+        if isinstance(images, ImageObject):
+            images = [images]
         
-        pixel_values = self.processor(image, return_tensors='pt').pixel_values
+        images = [image.convert('RGB') for image in images]
+        
+        pixel_values = self.processor(images, return_tensors='pt').pixel_values
 
         # generate transcription (here we only generate 30 tokens)
         outputs = self.model.generate(
