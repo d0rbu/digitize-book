@@ -1,18 +1,14 @@
 from fastapi import FastAPI, UploadFile, File, Response, HTTPException, status
 from ocr import NougatOCR  # Import the NougatOCR class
-from textbook import Textbook
+from textbook import Textbook, Summary, Quiz, Flashcards
 import pickle
 import numpy as np
 
 app = FastAPI()
-ocr = NougatOCR() 
 
-with open('textbook2.rtbk', 'rb') as f:
+# ocr = NougatOCR() 
+with open('textbook2.tbk', 'rb') as f:
     textbook2 = pickle.load(f)
-    
-embeddings2 = np.load('textbook2.npy')
-textbook2 = Textbook(textbook2, embeddings2)
-
 print("Textbook loaded")
 
 @app.get("/")
@@ -21,14 +17,23 @@ def read_root():
 
 @app.post("/upload", status_code=status.HTTP_201_CREATED)
 async def create_upload_file(file: UploadFile = File(...), response=Response()):
-    pass
+    textbook = textbook2
+
+    if textbook is not None:
+        toc = textbook.table_of_contents
+
+        return {"table_of_contents": [{"title": chapter.title, "start_page": chapter.start_page.item(), "end_page": chapter.end_page.item()} for chapter in toc]}
+    else:
+        raise HTTPException(status_code=404, detail="Textbook not found")
 
 @app.get("/chapters", status_code=status.HTTP_200_OK)
 def get_chapters():
-    if textbook2 is not None:
+    textbook = textbook2
+
+    if textbook is not None:
         chapters = []
 
-        for chapter in textbook2.chapters:
+        for chapter in textbook.chapters:
             chapter_data = {
                 "title": chapter.title,
                 "activities": [],
@@ -39,10 +44,10 @@ def get_chapters():
                     "name": activity.name,
                 }
 
-                if isinstance(activity, Textbook.Summary):
+                if isinstance(activity, Summary):
                     activity_data["content"] = activity.content
                     activity_data["type"] = "summary"
-                elif isinstance(activity, Textbook.Quiz):
+                elif isinstance(activity, Quiz):
                     activity_data["questions"] = [
                         {
                             "question": question.question,
@@ -52,7 +57,7 @@ def get_chapters():
                         for question in activity.questions
                     ]
                     activity_data["type"] = "quiz"
-                elif isinstance(activity, Textbook.Flashcards):
+                elif isinstance(activity, Flashcards):
                     activity_data["cards"] = [
                         {
                             "front": card.front,

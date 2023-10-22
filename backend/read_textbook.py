@@ -3,17 +3,19 @@ from ocr import NougatOCR
 import pickle
 import numpy as np
 
-TEXTBOOK = 'textbook2'
+TEXTBOOK = 'textbook1'
 
 
 with open(f'{TEXTBOOK}.rtbk', 'rb') as f:
-    textbook2 = pickle.load(f)
+    textbook = pickle.load(f)
     
-embeddings2 = np.load('textbook2.npy')
-textbook2 = Textbook(textbook2, embeddings2)
+embeddings = np.load(f'{TEXTBOOK}.npy')
+
+print('Loaded textbook')
+textbook = Textbook(textbook, embeddings)
 
 with open(f'{TEXTBOOK}.tbk', 'wb') as f:
-    pickle.dump(textbook2, f)
+    pickle.dump(textbook, f)
 
 # ocr = NougatOCR()
 

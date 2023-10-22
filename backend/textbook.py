@@ -6,6 +6,7 @@ from typing import Sequence, Collection, Tuple
 from dotenv import load_dotenv
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from tqdm import tqdm
 import openai
 import os
 import json
@@ -77,17 +78,18 @@ openai.api_key = OPENAI_API_KEY
 
 
 class Textbook:
-    MODEL = 'gpt-4-0613'
+    MODEL = 'gpt-3.5-turbo-0613'
 
     def __init__(self, textbook: Sequence[str], embeddings: np.ndarray | None = None) -> None:
         self.raw_textbook: Sequence[str] = textbook
         table_of_contents_raw: Sequence[str] = self._extract_table_of_contents()  # pages representing the table of contents
         sections: Sequence[str] = self._get_sections(table_of_contents_raw)  # the sections of the textbook
         segment: Tuple[Sequence[ToCEntry], Sequence[np.ndarray]] = self._segment(sections, embeddings)  # get chapters and their associated pages
-        table_of_contents: Sequence[ToCEntry] = segment[0]  # get the table of contents
+        self.table_of_contents: Sequence[ToCEntry] = segment[0]  # get the table of contents
         self.embeddings: Sequence[np.ndarray] = segment[1]  # get the embeddings for each page
 
-        self.chapters: Sequence[Chapter] = self._parse_chapters(table_of_contents, self.embeddings)  # get the actual chapters
+        print('Generating chapters...')
+        self.chapters: Sequence[Chapter] = self._parse_chapters(self.table_of_contents, self.embeddings)  # get the actual chapters
     
     @staticmethod
     def _count_numbers(page: str) -> int:  # count the number of separate instances of numbers in the page; i.e. 34 34 1 has 3 numbers
@@ -238,7 +240,8 @@ class Textbook:
     def _parse_chapters(self, table_of_contents: Sequence[ToCEntry], embeddings: Sequence[np.ndarray]) -> Sequence[Chapter]:
         chapters = []
 
-        for toc_entry, embedding in zip(table_of_contents, embeddings):
+        print(len(table_of_contents))
+        for toc_entry, embedding in tqdm(zip(table_of_contents, embeddings), total=len(table_of_contents)):
             start_page = toc_entry.start_page
             end_page = toc_entry.end_page
             chapter_title = toc_entry.title
@@ -325,7 +328,7 @@ class Textbook:
         questions = []
         batch_size = 3  # Set the batch size to 3 pages
 
-        for batch in batched(pages, batch_size):
+        for batch in tqdm(batched(pages, batch_size)):
             # Generate a question for the chunk of pages
             question = self._generate_question(title, batch)
             questions.append(question)
@@ -377,14 +380,20 @@ class Textbook:
             },
         }
 
-        response = openai.ChatCompletion.create(
-            model=self.MODEL,
-            messages=messages,
-            functions=[quiz_function],
-            function_call={'name': QUIZ_FUNCTION_NAME},
-        )
+        while True:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=self.MODEL,
+                    messages=messages,
+                    functions=[quiz_function],
+                    function_call={'name': QUIZ_FUNCTION_NAME},
+                )
 
-        arguments = json.loads(response['choices'][0]['message']['function_call']['arguments'])
+                arguments = json.loads(response['choices'][0]['message']['function_call']['arguments'])
+                break
+            except Exception as e:
+                print(e)
+                continue
 
         correct_idx = random.randrange(4)
         options = [arguments['incorrect_answer_1'], arguments['incorrect_answer_2'], arguments['incorrect_answer_3']]
@@ -397,7 +406,7 @@ class Textbook:
         flashcards = []
         batch_size = 1  # Set the batch size to 1 page
 
-        for batch in batched(pages, batch_size):
+        for batch in tqdm(batched(pages, batch_size)):
             # Generate a flashcard for the batch of pages
             flashcard = self._generate_flashcard(batch)
             flashcards.append(flashcard)
@@ -437,14 +446,20 @@ class Textbook:
             },
         }
 
-        response = openai.ChatCompletion.create(
-            model=self.MODEL,
-            messages=messages,
-            functions=[flashcard_function],
-            function_call={'name': FLASHCARD_FUNCTION_NAME},
-        )
+        while True:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=self.MODEL,
+                    messages=messages,
+                    functions=[flashcard_function],
+                    function_call={'name': FLASHCARD_FUNCTION_NAME},
+                )
 
-        arguments = json.loads(response['choices'][0]['message']['function_call']['arguments'])
+                arguments = json.loads(response['choices'][0]['message']['function_call']['arguments'])
+                break
+            except Exception as e:
+                print(e)
+                continue
 
         flashcard = Flashcard(front=arguments['front'], back=arguments['back'], page_indices=[page.idx for page in pages])
 
