@@ -25,12 +25,11 @@ def textbooks():
     # embeddings1 = np.load('textbook1.npy')
     # textbook1 = Textbook(textbook1, embeddings1)
 
-    # with open('test_textbook2.tbk', 'rb') as f:
-    #     textbook2 = pickle.load(f)
     with open('textbook2.rtbk', 'rb') as f:
         textbook2 = pickle.load(f)
-
-    textbook2 = Textbook(textbook2)
+    
+    embeddings2 = np.load('textbook2.npy')
+    textbook2 = Textbook(textbook2, embeddings2)
 
     return textbook1, textbook2
 

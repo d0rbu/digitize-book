@@ -5,12 +5,14 @@ from more_itertools import batched
 from typing import Sequence, Collection, Tuple
 from dotenv import load_dotenv
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 import openai
 import os
 import json
 import torch as th
 import numpy as np
 import random
+import time
 
 
 @dataclass
@@ -75,7 +77,7 @@ openai.api_key = OPENAI_API_KEY
 
 
 class Textbook:
-    MODEL = 'gpt-3.5-turbo-0613'
+    MODEL = 'gpt-4-0613'
 
     def __init__(self, textbook: Sequence[str], embeddings: np.ndarray | None = None) -> None:
         self.raw_textbook: Sequence[str] = textbook
@@ -123,7 +125,7 @@ class Textbook:
         messages = [
             {
                 'role': 'user',
-                'content': 'Can you output the names of the sections of this textbook in order based on the table of contents? I will send a message for each page in the table of contents. It may be a little wrong and numbers before the section names may be inaccurate, but the order is correct. There may be some hierarchies in the table of contents; PLEASE ignore those, simply output the bottom-level sections. ONLY include one level of sections; if there are chapters organized into subchapters, IGNORE then chapters and only output the subchapters.'
+                'content': 'Can you output the names of the sections of this textbook in order based on the table of contents? I will send a message for each page in the table of contents. It may be a little wrong and numbers before the section names may be inaccurate, but the order is correct. There may be some hierarchies in the table of contents; PLEASE ignore those, simply output the bottom-level sections. ONLY include one level of sections; if there are chapters organized into subchapters, IGNORE then chapters and only output the subchapters. There would be more subchapters than chapters. Also, EXCLUDE the preface/introduction/table of contents and the bibliography/index.'
             },
             *[{
                 'role': 'user',
@@ -167,22 +169,34 @@ class Textbook:
         return predicted_sections
     
     def _segment(self, sections: Sequence[str], embeddings: np.ndarray | None = None) -> Tuple[Sequence[ToCEntry], Sequence[np.ndarray]]:
-        INDEX_DISTANCE_WEIGHT = 0.4  # how much to weight the index of the page as a distance metric
-        SECTION_TITLE_ALPHA = 0.2  # how much to weight section title vs the rest of the section
+        INDEX_DISTANCE_WEIGHT = 5  # how much to weight the index of the page as a distance metric
+        EMBEDDING_BATCH_SIZE = 64  # the batch size to use when generating embeddings
+        BATCH_WAIT = 0.5  # the amount of time to wait between batches (😡)
 
         if embeddings is None:
-            embeddings = openai.Embedding.create(
-                model='text-embedding-ada-002',
-                input=self.raw_textbook,
-            )['data']
-            embeddings = np.array([[*embedding['embedding'], i * INDEX_DISTANCE_WEIGHT] for i, embedding in enumerate(embeddings)])
-        else:
-            original_embeddings = embeddings
-            embeddings = np.empty((original_embeddings.shape[0], original_embeddings.shape[1] + 1))
-            embeddings[:, :-1] = original_embeddings
-            embeddings[:, -1] = np.arange(original_embeddings.shape[0]) * INDEX_DISTANCE_WEIGHT
+            raw_embeddings = []
+            for batch in batched(self.raw_textbook, EMBEDDING_BATCH_SIZE):
+                current_embeddings = openai.Embedding.create(
+                    model='text-embedding-ada-002',
+                    input=batch,
+                )['data']
+                raw_embeddings.extend([embedding['embedding'] for embedding in current_embeddings])
+
+                time.sleep(BATCH_WAIT)  # stupid ass bitch ass rate limit
+            
+            embeddings = np.array(raw_embeddings)
         
-        import pdb; pdb.set_trace()
+        # PCA decomposition of embeddings
+        PCA_DIM = 32
+        
+        pca = PCA(n_components=PCA_DIM)
+        pca_result = pca.fit_transform(embeddings)
+        embeddings = pca_result / np.expand_dims(np.linalg.norm(pca_result, axis=1), axis=1)
+
+        raw_embeddings = embeddings
+        embeddings = np.empty((embeddings.shape[0], embeddings.shape[1] + 1))
+        embeddings[:, :-1] = raw_embeddings
+        embeddings[:, -1] = np.linspace(0, INDEX_DISTANCE_WEIGHT, raw_embeddings.shape[0])
 
         section_title_embeddings = openai.Embedding.create(
             model='text-embedding-ada-002',
@@ -192,10 +206,14 @@ class Textbook:
 
         # Split up the embeddings into num_sections initial clusters
         cluster_indices = th.linspace(0, len(embeddings), len(sections) + 1).long()
+        cluster_index_centers = th.linspace(0, INDEX_DISTANCE_WEIGHT, len(sections)).long()
         cluster_centers = []
 
         for i, (start, stop) in enumerate(zip(cluster_indices[:-1], cluster_indices[1:])):
-            current_embedding = SECTION_TITLE_ALPHA * section_title_embeddings[i] + (1 - SECTION_TITLE_ALPHA) * embeddings[start:stop].mean(axis=0)
+            current_embedding = embeddings[start:stop].mean(axis=0)
+            current_embedding[-1] = 0
+            current_embedding /= np.linalg.norm(current_embedding)
+            current_embedding[-1] = cluster_index_centers[i]
 
             cluster_centers.append(current_embedding)
         
@@ -252,9 +270,6 @@ class Textbook:
         return activities
         
     def _generate_summary(self, title: str, pages: Sequence[Page]) -> Summary: 
-        '''batch it by taking in certain batch size of pages and get a summary of 
-        each and do the same recursively and then get a summary of each batch until 
-        you get one summary'''
         summary = self._generate_summary_recursive([page.text for page in pages])
 
         return Summary(name='Section Summary', content=summary)
@@ -263,7 +278,7 @@ class Textbook:
         if len(pages) == 1:
             return pages[0]
         
-        BATCH_LEN_THRESHOLD = 10_000  # the threshold for the length of a batch of pages
+        BATCH_LEN_THRESHOLD = 4_000  # the threshold for the length of a batch of pages
         
         batches = []
         current_batch = []
@@ -277,7 +292,7 @@ class Textbook:
                 batches.append(current_batch)
                 current_batch = []
                 current_batch_len = 0
-            
+        
         if len(current_batch) > 0:
             batches.append(current_batch)
         
@@ -297,33 +312,14 @@ class Textbook:
             } for string in strings]
         ]
 
-        SUMMARY_FUNCTION_NAME = 'display_summary'
-
-        summary_function = {
-            'name': SUMMARY_FUNCTION_NAME,
-            'description': 'Displays a summary.',
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'summary': {
-                        'type': 'string',
-                        'description': 'The summary.'
-                    },
-                },
-                'required': ['summary'],
-            },
-        }
-
         response = openai.ChatCompletion.create(
             model=self.MODEL,
             messages=messages,
-            functions=[summary_function],
-            function_call={'name': SUMMARY_FUNCTION_NAME},
         )
 
-        arguments = json.loads(response['choices'][0]['message']['function_call']['arguments'])
+        summary = response['choices'][0]['message']['content']
 
-        return arguments['summary']
+        return summary
 
     def _generate_quiz(self, title: str, pages: Sequence[Page]) -> Quiz: 
         questions = []
