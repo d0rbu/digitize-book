@@ -1,5 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
+import "./fonts/Aileron-Bold.otf"
 import Upload from './components/Upload';
 import Flashcards from './components/flashcards';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
