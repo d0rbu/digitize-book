@@ -15,7 +15,7 @@ def test_image_ocr(ocr_model):
     image = Image.open('test_image.png')
     assert image is not None
 
-    sequence = ocr_model.process(image, max_len=4)
+    sequence = ocr_model.process(image, sample=False, max_len=4)
     assert sequence is not None
 
     assert sequence[0] == 'Here \\ '
@@ -28,7 +28,7 @@ def test_pdf_conversion(ocr_model):
 
 def test_pdf_ocr(ocr_model):
     with open('test_pdf.pdf', 'rb') as f:
-        sequence = ocr_model.process_pdf(f, max_len=4)
+        sequence = ocr_model.process_pdf(f, sample=False, max_len=4)
         assert sequence is not None
         assert len(sequence) == 2
         assert sequence[0] == 'Here \\ '
