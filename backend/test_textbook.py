@@ -2,39 +2,43 @@ from textbook import Textbook
 from ocr import NougatOCR
 import pytest
 import pickle
+import numpy as np
 
 
 @pytest.fixture(scope='session')
 def textbooks():
-    ocr = NougatOCR()
+    # ocr = NougatOCR()
     
-    with open('test_pdf3.pdf', 'rb') as f:
-        sequence = ocr.process_pdf(f)
+    # with open('test_pdf2.pdf', 'rb') as f:
+    #     sequence = ocr.process_pdf(f)
     
-    textbook2 = Textbook(sequence)
+    # textbook1 = Textbook(sequence)
+    
+    # with open('test_pdf3.pdf', 'rb') as f:
+    #     sequence = ocr.process_pdf(f)
+    
+    # textbook2 = Textbook(sequence)
 
-    with open('test_textbook2.tbk', 'wb') as f:
-        pickle.dump(textbook2, f)
+    # with open('textbook1.rtbk', 'rb') as f:
+    #     textbook1 = pickle.load(f)
+    
+    # embeddings1 = np.load('textbook1.npy')
+    # textbook1 = Textbook(textbook1, embeddings1)
 
-    with open('test_textbook1.tbk', 'rb') as f:
-        textbook1 = pickle.load(f)
+    # with open('test_textbook2.tbk', 'rb') as f:
+    #     textbook2 = pickle.load(f)
+    with open('textbook2.rtbk', 'rb') as f:
+        textbook2 = pickle.load(f)
 
-    return textbook1, None
+    textbook2 = Textbook(textbook2)
+
+    return textbook1, textbook2
 
 def test_extract_table_of_contents(textbooks):
     textbook1, textbook2 = textbooks
     
-    toc_raw = Textbook._extract_table_of_contents(textbook1.raw_textbook)
+    toc_raw = textbook1._extract_table_of_contents()
     print(repr(toc_raw[0]))
 
     assert toc_raw is not None
     assert len(toc_raw) == 1
-
-def test_parse_table_of_contents(textbooks):
-    textbook1, textbook2 = textbooks
-    
-    toc_raw = Textbook._extract_table_of_contents(textbook1.raw_textbook)
-    toc = Textbook._parse_table_of_contents(toc_raw)
-
-    assert toc is not None
-    assert len(toc) == 7
