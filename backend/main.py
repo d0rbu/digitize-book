@@ -9,6 +9,10 @@ app = FastAPI()
 # ocr = NougatOCR() 
 with open('textbook2.tbk', 'rb') as f:
     textbook2 = pickle.load(f)
+# with open('textbook2.rtbk', 'rb') as f:
+    # textbook2_raw = pickle.load(f)
+# with open('textbook2.npy', 'rb') as f:
+    # textbook2_embeddings = np.load(f)
 print("Textbook loaded")
 
 @app.get("/")
@@ -18,6 +22,7 @@ def read_root():
 @app.post("/upload", status_code=status.HTTP_201_CREATED)
 async def create_upload_file(file: UploadFile = File(...), response=Response()):
     textbook = textbook2
+    # textbook = Textbook(textbook2_raw, textbook2_embeddings)
 
     if textbook is not None:
         toc = textbook.table_of_contents
@@ -29,6 +34,7 @@ async def create_upload_file(file: UploadFile = File(...), response=Response()):
 @app.get("/chapters", status_code=status.HTTP_200_OK)
 def get_chapters():
     textbook = textbook2
+    # textbook = Textbook(textbook2_raw, textbook2_embeddings)
 
     if textbook is not None:
         chapters = []

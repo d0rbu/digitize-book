@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from itertools import islice
 from more_itertools import batched
 from typing import Sequence, Collection, Tuple
 from dotenv import load_dotenv
