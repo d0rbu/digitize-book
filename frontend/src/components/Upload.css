@@ -1,0 +1,51 @@
+.buttonBox{
+    background-color: #ec6d18;
+}
+.landingMessage {
+    text-align: center;
+    margin-top: 500px !important; /* Adjust this value to control the vertical position */
+    border-width: 3px;
+    border: none;
+    margin-left: 30px;
+    font-family: "Hurme Geometric Sans 4 W00 Bold";
+    font-size: 27px;
+    background-color: none;
+}
+.titleF{
+    font-family: "Hurme Geometric Sans 4 W00 Bold";
+
+}
+.uploadText{
+    font-size: 15px;
+    font-family: "Hurme Geometric Sans 4 W00 Bold";
+
+}
+@font-face {
+    font-family: "Bodoni SvtyTwo ITC TT Bold";
+    src: url("https://db.onlinewebfonts.com/t/f99da0cc089925103ee1ecbcf5758240.eot");
+    src: url("https://db.onlinewebfonts.com/t/f99da0cc089925103ee1ecbcf5758240.eot?#iefix")format("embedded-opentype"),
+    url("https://db.onlinewebfonts.com/t/f99da0cc089925103ee1ecbcf5758240.woff2")format("woff2"),
+    url("https://db.onlinewebfonts.com/t/f99da0cc089925103ee1ecbcf5758240.woff")format("woff"),
+    url("https://db.onlinewebfonts.com/t/f99da0cc089925103ee1ecbcf5758240.ttf")format("truetype"),
+    url("https://db.onlinewebfonts.com/t/f99da0cc089925103ee1ecbcf5758240.svg#Bodoni SvtyTwo ITC TT Bold")format("svg");
+}
+@font-face {
+    font-family: "Hurme Geometric Sans 4 W00 Bold";
+    src: url("https://db.onlinewebfonts.com/t/f1631895ab87c699523b01ff210840a2.eot");
+    src: url("https://db.onlinewebfonts.com/t/f1631895ab87c699523b01ff210840a2.eot?#iefix")format("embedded-opentype"),
+    url("https://db.onlinewebfonts.com/t/f1631895ab87c699523b01ff210840a2.woff2")format("woff2"),
+    url("https://db.onlinewebfonts.com/t/f1631895ab87c699523b01ff210840a2.woff")format("woff"),
+    url("https://db.onlinewebfonts.com/t/f1631895ab87c699523b01ff210840a2.ttf")format("truetype"),
+    url("https://db.onlinewebfonts.com/t/f1631895ab87c699523b01ff210840a2.svg#Hurme Geometric Sans 4 W00 Bold")format("svg");
+}
+
+/* @font-face {
+    font-family: "Arial MT Bold";
+    src: url("https://db.onlinewebfonts.com/t/3b31b73722605772660958e56766e7f9.eot");
+    src: url("https://db.onlinewebfonts.com/t/3b31b73722605772660958e56766e7f9.eot?#iefix")format("embedded-opentype"),
+    url("https://db.onlinewebfonts.com/t/3b31b73722605772660958e56766e7f9.woff2")format("woff2"),
+    url("https://db.onlinewebfonts.com/t/3b31b73722605772660958e56766e7f9.woff")format("woff"),
+    url("https://db.onlinewebfonts.com/t/3b31b73722605772660958e56766e7f9.ttf")format("truetype"),
+    url("https://db.onlinewebfonts.com/t/3b31b73722605772660958e56766e7f9.svg#Arial MT Bold")format("svg");
+} */
+/* flex items-center mr-[35%] justify-center bg-red-800  */
